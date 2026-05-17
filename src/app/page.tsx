@@ -15,6 +15,19 @@ export default function Home() {
   const [pendingBarcode, setPendingBarcode] = useState('');
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Dynamically trigger camera — avoids Android stale input bug after barcode scanner
+  const triggerCamera = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) handlePhoto(file);
+    };
+    input.click();
+  };
   const { runAudit, isRunning } = useAudit();
 
   const saveHistory = useCallback(async (res: AuditResult, name: string, method: string, barcode?: string) => {
@@ -223,7 +236,7 @@ export default function Home() {
           </div>
 
           <button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => triggerCamera()}
             className="w-full flex items-center gap-4 bg-green-900 hover:bg-green-800 border border-green-700 text-white rounded-2xl p-5 transition-all"
           >
             <span className="text-4xl">📷</span>
@@ -253,7 +266,7 @@ export default function Home() {
 
           {/* Photo button */}
           <button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => triggerCamera()}
             className="w-full flex items-center gap-4 bg-[#111111] hover:bg-[#1a1a1a] border border-neutral-800 hover:border-green-700 text-white rounded-2xl p-5 transition-all group"
           >
             <span className="text-4xl">📷</span>
@@ -262,18 +275,7 @@ export default function Home() {
               <p className="text-neutral-500 text-sm">Claude Vision lee los ingredientes</p>
             </div>
           </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={e => {
-              const file = e.target.files?.[0];
-              if (file) handlePhoto(file);
-              e.target.value = '';
-            }}
-          />
+
 
           {/* Barcode button */}
           <button
