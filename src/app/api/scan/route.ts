@@ -63,6 +63,36 @@ Si no puedes leer la lista de ingredientes, responde: "ILEGIBLE"`,
       return NextResponse.json({ ingredientsRaw, source: 'vision' });
     }
 
+    if (type === 'barcode_vision' && imageBase64) {
+      const barcodeRes = await client.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 100,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: imageMediaType || 'image/jpeg', data: imageBase64 },
+            },
+            {
+              type: 'text',
+              text: `Busca en esta imagen un codigo de barras (EAN-13, UPC, EAN-8 o similar).
+Responde SOLO con JSON: {"barcode": "1234567890123"}
+Si no hay codigo de barras visible, responde: {"barcode": null}
+No incluyas nada mas en tu respuesta.`,
+            },
+          ],
+        }],
+      });
+      const raw = barcodeRes.content[0].type === 'text' ? barcodeRes.content[0].text : '{}';
+      try {
+        const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+        return NextResponse.json(parsed);
+      } catch {
+        return NextResponse.json({ barcode: null });
+      }
+    }
+
     if (type === 'packaging' && imageBase64) {
       // Claude Vision — detect packaging material
       const packRes = await client.messages.create({
