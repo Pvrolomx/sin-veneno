@@ -5,13 +5,14 @@ import { AuditResult, ScanInput } from '@/lib/sinveneno-core-engine';
 import ResultCard from '@/components/ResultCard';
 import BarcodeScanner from '@/components/BarcodeScanner';
 
-type Screen = 'home' | 'barcode' | 'analyzing' | 'result';
+type Screen = 'home' | 'barcode' | 'analyzing' | 'result' | 'notfound';
 
 export default function Home() {
   const [screen, setScreen] = useState<Screen>('home');
   const [result, setResult] = useState<AuditResult | null>(null);
   const [productName, setProductName] = useState('');
   const [searchText, setSearchText] = useState('');
+  const [pendingBarcode, setPendingBarcode] = useState('');
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { runAudit, isRunning } = useAudit();
@@ -92,8 +93,8 @@ export default function Home() {
       }).then(r => r.json());
 
       if (!res.ingredientsRaw) {
-        setError(`Producto ${barcode} no encontrado. Intenta con foto de la etiqueta.`);
-        setScreen('home');
+        setPendingBarcode(barcode);
+        setScreen('notfound');
         return;
       }
 
@@ -203,6 +204,42 @@ export default function Home() {
           onReset={reset}
           onSave={() => {}} // already saved on detection
         />
+      )}
+
+      {/* Not found — pivot to photo */}
+      {screen === 'notfound' && (
+        <div className="w-full max-w-md space-y-4">
+          <div className="bg-yellow-950 border border-yellow-800 rounded-2xl p-5 space-y-3">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📦</span>
+              <div>
+                <p className="font-bold text-yellow-300">Producto no en base de datos</p>
+                <p className="text-yellow-600 text-xs font-mono mt-0.5">{pendingBarcode}</p>
+              </div>
+            </div>
+            <p className="text-neutral-400 text-sm leading-relaxed">
+              Este producto no está en Open Food Facts. Fotografía directamente la lista de ingredientes de la etiqueta para analizarlo.
+            </p>
+          </div>
+
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full flex items-center gap-4 bg-green-900 hover:bg-green-800 border border-green-700 text-white rounded-2xl p-5 transition-all"
+          >
+            <span className="text-4xl">📷</span>
+            <div className="text-left">
+              <p className="font-bold text-lg">Fotografiar ingredientes</p>
+              <p className="text-green-400 text-sm">Apunta a la lista de ingredientes</p>
+            </div>
+          </button>
+
+          <button
+            onClick={reset}
+            className="w-full text-neutral-600 text-sm py-3"
+          >
+            ← Volver al inicio
+          </button>
+        </div>
       )}
 
       {/* Home */}
